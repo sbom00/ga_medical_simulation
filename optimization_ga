@@ -1,0 +1,1466 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": [],
+      "collapsed_sections": [
+        "QVCrdnYPlk0f",
+        "mattTbqmlUCK",
+        "cmETBoKTlZo2",
+        "U9GkRhj0l99M",
+        "sp1b0SSIkkdi",
+        "gMPojjjh69gG",
+        "XxxzjQaF7CCo",
+        "hdxej4uk7MM8",
+        "n9_EuIJO7Wo8",
+        "dKQWJG3f7aUm",
+        "I-Hx7DRE7ej1",
+        "3UjvMsDU7rvH",
+        "hK5ZDwkL0gvU",
+        "p3DW5sFjrYqF"
+      ],
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/sbom00/ga_medical_simulation/blob/main/optimization_ga\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "## 1. LIBRARIES"
+      ],
+      "metadata": {
+        "id": "QVCrdnYPlk0f"
+      }
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "2gay5IIAewdl",
+        "outputId": "577a7173-5195-4fac-e2c2-35d95bf8c6d9"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Looking in indexes: https://pypi.org/simple, https://us-python.pkg.dev/colab-wheels/public/simple/\n",
+            "Collecting simpy\n",
+            "  Downloading simpy-4.0.1-py2.py3-none-any.whl (29 kB)\n",
+            "Installing collected packages: simpy\n",
+            "Successfully installed simpy-4.0.1\n"
+          ]
+        }
+      ],
+      "source": [
+        "###Libraries\n",
+        "!pip install simpy\n",
+        "import random\n",
+        "import simpy\n",
+        "import pandas as pd\n",
+        "import numpy as np\n",
+        "import random \n",
+        "import math\n",
+        "import matplotlib.pyplot as plt"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "## 2. DISCRETE EVENT SIMULATION"
+      ],
+      "metadata": {
+        "id": "FJ1qZqAJkiJn"
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "### 2.1 Activety Functions"
+      ],
+      "metadata": {
+        "id": "mattTbqmlUCK"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def OnsetOfSymptoms(env, mean_etio_eval):\n",
+        "    global log, name\n",
+        "    #global I_OnstSymp\n",
+        "    log = pd.DataFrame(columns=['id',\n",
+        "                                'I_OnstSymp',\n",
+        "                                'I_EmerRecepAtend',\n",
+        "                                'O_EmerRecepAtend',\n",
+        "                                'I_Manchester',\n",
+        "                                'O_Manchester',\n",
+        "                                'I_Ambu',\n",
+        "                                'O_Ambu',\n",
+        "                                'I_ISC',\n",
+        "                                'O_ISC',\n",
+        "                                'I_Neuro',\n",
+        "                                'O_Neuro',\n",
+        "                                'I_Tomo',\n",
+        "                                'O_Tomo',\n",
+        "                                'I_An',\n",
+        "                                'O_An',\n",
+        "                                'I_TratPrescp',\n",
+        "                                'O_TratPrescp',\n",
+        "                                'I_T',\n",
+        "                                'O_T',\n",
+        "                                'I_Etiolo',\n",
+        "                                'O_Etiolo_discharge'])\n",
+        "    I_OnstSymp = 0\n",
+        "    I_EmerRecepAtend = 0\n",
+        "    O_EmerRecepAtend = 0\n",
+        "    I_Manchester = 0\n",
+        "    O_Manchester = 0\n",
+        "    I_Ambu = 0\n",
+        "    O_Ambu = 0\n",
+        "    I_ISC = 0\n",
+        "    O_ISC = 0\n",
+        "    I_Neuro = 0\n",
+        "    O_Neuro = 0\n",
+        "    I_Tomo = 0\n",
+        "    O_Tomo = 0\n",
+        "    I_An = 0\n",
+        "    O_An = 0\n",
+        "    I_TratPrescp = 0\n",
+        "    O_TratPrescp = 0\n",
+        "    I_T = 0\n",
+        "    O_T = 0\n",
+        "    I_Etiolo = 0\n",
+        "    O_Etiolo_discharg = 0\n",
+        "\n",
+        "    nome = 0\n",
+        "    while True:\n",
+        "        yield env.timeout(random.expovariate(1.0/inter_arrival_time))\n",
+        "        nome += 1\n",
+        "        I_OnstSymp = env.now\n",
+        "        if random.uniform(0, 1) > 0.4746:\n",
+        "            env.process(EmergencyRecepAttendance(env, nome, Bed, I_OnstSymp, I_EmerRecepAtend, O_EmerRecepAtend, I_Manchester, O_Manchester, I_Ambu, O_Ambu, I_ISC, O_ISC,\n",
+        "    I_Neuro, O_Neuro, I_Tomo, O_Tomo, I_An, O_An, I_TratPrescp, O_TratPrescp, I_T, O_T, I_Etiolo, O_Etiolo_discharg, mean_etio_eval))\n",
+        "        else:\n",
+        "            env.process(AmbulanceTransportation(env, nome, Bed, I_OnstSymp, I_EmerRecepAtend, O_EmerRecepAtend, I_Manchester, O_Manchester, I_Ambu, O_Ambu, I_ISC, O_ISC,\n",
+        "    I_Neuro, O_Neuro, I_Tomo, O_Tomo, I_An, O_An, I_TratPrescp, O_TratPrescp, I_T, O_T, I_Etiolo, O_Etiolo_discharg, mean_etio_eval))\n",
+        "        \n",
+        "def EmergencyRecepAttendance(env, nome, Bed, I_OnstSymp, I_EmerRecepAtend, O_EmerRecepAtend, I_Manchester, O_Manchester, I_Ambu, O_Ambu, I_ISC, O_ISC,\n",
+        "    I_Neuro, O_Neuro, I_Tomo, O_Tomo, I_An, O_An, I_TratPrescp, O_TratPrescp, I_T, O_T, I_Etiolo, O_Etiolo_discharg, mean_etio_eval):  \n",
+        "    I_EmerRecepAtend=env.now\n",
+        "    yield env.timeout(random.triangular(0, 2700, 180))\n",
+        "    O_EmerRecepAtend=env.now\n",
+        "    I_Manchester=env.now\n",
+        "    yield env.timeout(random.triangular(0, 17, 5))\n",
+        "    O_Manchester=env.now\n",
+        "    env.process(SendIntegralStrokeCareUnity(env, nome, Bed, I_OnstSymp, I_EmerRecepAtend, O_EmerRecepAtend, I_Manchester, O_Manchester, I_Ambu, O_Ambu, I_ISC, O_ISC,\n",
+        "    I_Neuro, O_Neuro, I_Tomo, O_Tomo, I_An, O_An, I_TratPrescp, O_TratPrescp, I_T, O_T, I_Etiolo, O_Etiolo_discharg, mean_etio_eval))\n",
+        "\n",
+        "def AmbulanceTransportation(env, nome, Bed, I_OnstSymp, I_EmerRecepAtend, O_EmerRecepAtend, I_Manchester, O_Manchester, I_Ambu, O_Ambu, I_ISC, O_ISC,\n",
+        "    I_Neuro, O_Neuro, I_Tomo, O_Tomo, I_An, O_An, I_TratPrescp, O_TratPrescp, I_T, O_T, I_Etiolo, O_Etiolo_discharg, mean_etio_eval):  \n",
+        "    I_Ambu=env.now\n",
+        "    yield env.timeout(random.triangular(32, 129, 71.4))\n",
+        "    O_Ambu=env.now\n",
+        "    env.process(SendIntegralStrokeCareUnity(env, nome, Bed, I_OnstSymp, I_EmerRecepAtend, O_EmerRecepAtend, I_Manchester, O_Manchester, I_Ambu, O_Ambu, I_ISC, O_ISC,\n",
+        "    I_Neuro, O_Neuro, I_Tomo, O_Tomo, I_An, O_An, I_TratPrescp, O_TratPrescp, I_T, O_T, I_Etiolo, O_Etiolo_discharg, mean_etio_eval))\n",
+        "    \n",
+        "def SendIntegralStrokeCareUnity(env, nome, Bed, I_OnstSymp, I_EmerRecepAtend, O_EmerRecepAtend, I_Manchester, O_Manchester, I_Ambu, O_Ambu, I_ISC, O_ISC,\n",
+        "    I_Neuro, O_Neuro, I_Tomo, O_Tomo, I_An, O_An, I_TratPrescp, O_TratPrescp, I_T, O_T, I_Etiolo, O_Etiolo_discharg, mean_etio_eval):  \n",
+        "    request = Bed.request()\n",
+        "    I_ISC = env.now\n",
+        "    yield request\n",
+        "    yield env.timeout(random.triangular(1, 18, 5))\n",
+        "    O_ISC=env.now\n",
+        "    env.process(NeurologistEvaluation(env, nome, request, I_OnstSymp, I_EmerRecepAtend, O_EmerRecepAtend, I_Manchester, O_Manchester, I_Ambu, O_Ambu, I_ISC, O_ISC,\n",
+        "    I_Neuro, O_Neuro, I_Tomo, O_Tomo, I_An, O_An, I_TratPrescp, O_TratPrescp, I_T, O_T, I_Etiolo, O_Etiolo_discharg, mean_etio_eval))\n",
+        "    \n",
+        "def NeurologistEvaluation(env, nome, request, I_OnstSymp, I_EmerRecepAtend, O_EmerRecepAtend, I_Manchester, O_Manchester, I_Ambu, O_Ambu, I_ISC, O_ISC,\n",
+        "    I_Neuro, O_Neuro, I_Tomo, O_Tomo, I_An, O_An, I_TratPrescp, O_TratPrescp, I_T, O_T, I_Etiolo, O_Etiolo_discharg, mean_etio_eval):  \n",
+        "    I_Neuro=env.now\n",
+        "    yield env.timeout(random.triangular(1, 22, 13))\n",
+        "    O_Neuro=env.now\n",
+        "    env.process(Thomography(env, nome, request, I_OnstSymp, I_EmerRecepAtend, O_EmerRecepAtend, I_Manchester, O_Manchester, I_Ambu, O_Ambu, I_ISC, O_ISC,\n",
+        "    I_Neuro, O_Neuro, I_Tomo, O_Tomo, I_An, O_An, I_TratPrescp, O_TratPrescp, I_T, O_T, I_Etiolo, O_Etiolo_discharg, mean_etio_eval))\n",
+        "    \n",
+        "def Thomography(env, nome, request, I_OnstSymp, I_EmerRecepAtend, O_EmerRecepAtend, I_Manchester, O_Manchester, I_Ambu, O_Ambu, I_ISC, O_ISC,\n",
+        "    I_Neuro, O_Neuro, I_Tomo, O_Tomo, I_An, O_An, I_TratPrescp, O_TratPrescp, I_T, O_T, I_Etiolo, O_Etiolo_discharg, mean_etio_eval):  \n",
+        "    I_Tomo=env.now\n",
+        "    yield env.timeout(random.triangular(3, 10 , 4))\n",
+        "    O_Tomo=env.now\n",
+        "    a = random.uniform(0, 1)\n",
+        "    if a < 0.33334:\n",
+        "        env.process(Angiography(env, nome, request, I_OnstSymp, I_EmerRecepAtend, O_EmerRecepAtend, I_Manchester, O_Manchester, I_Ambu, O_Ambu, I_ISC, O_ISC,\n",
+        "    I_Neuro, O_Neuro, I_Tomo, O_Tomo, I_An, O_An, I_TratPrescp, O_TratPrescp, I_T, O_T, I_Etiolo, O_Etiolo_discharg, mean_etio_eval))\n",
+        "    elif a >= 0.3334 and a < 0.66667:\n",
+        "        env.process(TreatmentPrescription(env, nome, request, I_OnstSymp, I_EmerRecepAtend, O_EmerRecepAtend, I_Manchester, O_Manchester, I_Ambu, O_Ambu, I_ISC, O_ISC,\n",
+        "    I_Neuro, O_Neuro, I_Tomo, O_Tomo, I_An, O_An, I_TratPrescp, O_TratPrescp, I_T, O_T, I_Etiolo, O_Etiolo_discharg, mean_etio_eval))\n",
+        "    else:\n",
+        "        env.process(Trombolysis(env, nome, request, I_OnstSymp, I_EmerRecepAtend, O_EmerRecepAtend, I_Manchester, O_Manchester, I_Ambu, O_Ambu, I_ISC, O_ISC,\n",
+        "    I_Neuro, O_Neuro, I_Tomo, O_Tomo, I_An, O_An, I_TratPrescp, O_TratPrescp, I_T, O_T, I_Etiolo, O_Etiolo_discharg, mean_etio_eval))\n",
+        "        \n",
+        "def Angiography(env, nome, request, I_OnstSymp, I_EmerRecepAtend, O_EmerRecepAtend, I_Manchester, O_Manchester, I_Ambu, O_Ambu, I_ISC, O_ISC,\n",
+        "    I_Neuro, O_Neuro, I_Tomo, O_Tomo, I_An, O_An, I_TratPrescp, O_TratPrescp, I_T, O_T, I_Etiolo, O_Etiolo_discharg, mean_etio_eval):  \n",
+        "    I_An=env.now\n",
+        "    yield env.timeout(random.triangular(45, 78, 45))\n",
+        "    O_An=env.now\n",
+        "    a = random.uniform(0, 1)\n",
+        "    if a < 0.950001:\n",
+        "        env.process(TreatmentPrescription(env, nome, request, I_OnstSymp, I_EmerRecepAtend, O_EmerRecepAtend, I_Manchester, O_Manchester, I_Ambu, O_Ambu, I_ISC, O_ISC,\n",
+        "    I_Neuro, O_Neuro, I_Tomo, O_Tomo, I_An, O_An, I_TratPrescp, O_TratPrescp, I_T, O_T, I_Etiolo, O_Etiolo_discharg, mean_etio_eval))\n",
+        "    else:\n",
+        "        env.process(Trombolysis(env, nome, request, I_OnstSymp, I_EmerRecepAtend, O_EmerRecepAtend, I_Manchester, O_Manchester, I_Ambu, O_Ambu, I_ISC, O_ISC,\n",
+        "    I_Neuro, O_Neuro, I_Tomo, O_Tomo, I_An, O_An, I_TratPrescp, O_TratPrescp, I_T, O_T, I_Etiolo, O_Etiolo_discharg, mean_etio_eval))\n",
+        "    \n",
+        "def TreatmentPrescription(env, nome, request, I_OnstSymp, I_EmerRecepAtend, O_EmerRecepAtend, I_Manchester, O_Manchester, I_Ambu, O_Ambu, I_ISC, O_ISC,\n",
+        "    I_Neuro, O_Neuro, I_Tomo, O_Tomo, I_An, O_An, I_TratPrescp, O_TratPrescp, I_T, O_T, I_Etiolo, O_Etiolo_discharg, mean_etio_eval):  \n",
+        "    I_TratPrescp=env.now\n",
+        "    yield env.timeout(random.triangular(3, 15 , 7))\n",
+        "    O_TratPrescp=env.now\n",
+        "    env.process(EtiologicalAssessment(env, nome, request, I_OnstSymp, I_EmerRecepAtend, O_EmerRecepAtend, I_Manchester, O_Manchester, I_Ambu, O_Ambu, I_ISC, O_ISC,\n",
+        "    I_Neuro, O_Neuro, I_Tomo, O_Tomo, I_An, O_An, I_TratPrescp, O_TratPrescp, I_T, O_T, I_Etiolo, O_Etiolo_discharg, mean_etio_eval))\n",
+        "    \n",
+        "def Trombolysis(env, nome, request, I_OnstSymp, I_EmerRecepAtend, O_EmerRecepAtend, I_Manchester, O_Manchester, I_Ambu, O_Ambu, I_ISC, O_ISC,\n",
+        "    I_Neuro, O_Neuro, I_Tomo, O_Tomo, I_An, O_An, I_TratPrescp, O_TratPrescp, I_T, O_T, I_Etiolo, O_Etiolo_discharg, mean_etio_eval):  \n",
+        "    I_T=env.now\n",
+        "    yield env.timeout(random.triangular(60, 61.2 , 60))\n",
+        "    O_T=env.now\n",
+        "    env.process(EtiologicalAssessment(env, nome, request, I_OnstSymp, I_EmerRecepAtend, O_EmerRecepAtend, I_Manchester, O_Manchester, I_Ambu, O_Ambu, I_ISC, O_ISC,\n",
+        "    I_Neuro, O_Neuro, I_Tomo, O_Tomo, I_An, O_An, I_TratPrescp, O_TratPrescp, I_T, O_T, I_Etiolo, O_Etiolo_discharg, mean_etio_eval))\n",
+        "\n",
+        "def EtiologicalAssessment(env, nome, request, I_OnstSymp, I_EmerRecepAtend, O_EmerRecepAtend, I_Manchester, O_Manchester, I_Ambu, O_Ambu, I_ISC, O_ISC,\n",
+        "    I_Neuro, O_Neuro, I_Tomo, O_Tomo, I_An, O_An, I_TratPrescp, O_TratPrescp, I_T, O_T, I_Etiolo, O_Etiolo_discharg, mean_etio_eval):  \n",
+        "    global log\n",
+        "    I_Etiolo=env.now\n",
+        "    yield env.timeout(abs(random.gauss(mean_etio_eval, 13559)))\n",
+        "    O_Etiolo_discharge=env.now\n",
+        "    line = {'id':nome,\n",
+        "            'I_OnstSymp':I_OnstSymp,\n",
+        "            'I_EmerRecepAtend': I_EmerRecepAtend,\n",
+        "            'O_EmerRecepAtend': O_EmerRecepAtend,\n",
+        "            'I_Manchester': I_Manchester,\n",
+        "            'O_Manchester': [O_Manchester],\n",
+        "            'I_Ambu': [I_Ambu],\n",
+        "            'O_Ambu': [O_Ambu],\n",
+        "            'I_ISC': [I_ISC],\n",
+        "            'O_ISC': [O_ISC],\n",
+        "            'I_Neuro': [I_Neuro],\n",
+        "            'O_Neuro': [O_Neuro],\n",
+        "            'I_Tomo': [I_Tomo],\n",
+        "            'O_Tomo': [O_Tomo],\n",
+        "            'I_An': [I_An],\n",
+        "            'O_An': [O_An],\n",
+        "            'I_TratPrescp': [I_TratPrescp],\n",
+        "            'O_TratPrescp': [O_TratPrescp],\n",
+        "            'I_T': [I_T],\n",
+        "            'O_T': [O_T],\n",
+        "            'I_Etiolo': [I_Etiolo],\n",
+        "            'O_Etiolo_discharge': [O_Etiolo_discharge]}\n",
+        "    #print(line)\n",
+        "    df = pd.DataFrame(line)\n",
+        "    log = log.append(df)\n",
+        "    yield Bed.release(request)"
+      ],
+      "metadata": {
+        "id": "02yHKqRufBH0"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "### 2.2 Indicators"
+      ],
+      "metadata": {
+        "id": "cmETBoKTlZo2"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "#indicators\n",
+        "def indicators(log, df_ind, capacity, mean_etio_eval):\n",
+        "    global indicator_line\n",
+        "    global dp_intern\n",
+        "    global table_I2\n",
+        "    global I1_day\n",
+        "\n",
+        "    #Calculating I4\n",
+        "    log[\"I4\"] = np.nan\n",
+        "    for index,row in log.iterrows():\n",
+        "        if row['I_EmerRecepAtend'] != 0:\n",
+        "            if row['I_An'] != 0:\n",
+        "                log.iloc[index]['I4'] = row['I_An'] - row['I_EmerRecepAtend']\n",
+        "            elif row['I_T'] != 0:\n",
+        "                log.iloc[index]['I4'] = row['I_T'] - row['I_EmerRecepAtend']\n",
+        "            else:\n",
+        "                log.iloc[index]['I4'] = 0  \n",
+        "        else:\n",
+        "            if row['I_An'] != 0:\n",
+        "                log.iloc[index]['I4'] = row['I_An'] - row['I_ISC']\n",
+        "            elif row['I_T'] != 0:\n",
+        "                log.iloc[index]['I4'] = row['I_T'] - row['I_ISC']\n",
+        "            else:\n",
+        "                log.iloc[index]['I4'] = 0\n",
+        "\n",
+        "    I4 = (np.sum(log['I4'] <= 60)) / (np.sum(log['I4']>=0))\n",
+        "    \n",
+        "\n",
+        "    #Calculating I3\n",
+        "    log[\"I3\"] = np.nan\n",
+        "    for index,row in log.iterrows():\n",
+        "        if row['I_Tomo'] != 0:\n",
+        "            if row['I_EmerRecepAtend'] != 0:\n",
+        "                log.iloc[index]['I3'] = row['I_Tomo'] - row['I_EmerRecepAtend']\n",
+        "            else:\n",
+        "                log.iloc[index]['I3'] = row['I_Tomo'] - row['I_ISC']\n",
+        "        else:\n",
+        "            log.iloc[index]['I3'] = 0\n",
+        "\n",
+        "    I3 = (np.sum(log['I3'])) / (np.sum(log['I3']>0))\n",
+        "\n",
+        "    #Calculating I2\n",
+        "    table_I2 = log\n",
+        "    indexNames = log[log['O_Etiolo_discharge'] == 0].index\n",
+        "    table_I2 = log.drop(indexNames)\n",
+        "    table_I2.reset_index(drop=True, inplace=True)\n",
+        "    #table_I2.drop('index',axis='columns',inplace=True)\n",
+        "    table_I2[\"I2\"] = np.nan\n",
+        "    for index,row in table_I2.iterrows():\n",
+        "        table_I2.iloc[index]['I2'] = row['O_Etiolo_discharge'] - row['I_ISC']\n",
+        "    I2 = (np.sum(table_I2['I2'])) / (np.sum(table_I2['I2']>0))\n",
+        "    \n",
+        "    #Calculating I1\n",
+        "    table_I1=log.reset_index()\n",
+        "    table_I1.drop('index',axis='columns',inplace=True)\n",
+        "    rows=len(log.index)-1\n",
+        "    df_I1 = pd.DataFrame(np.zeros((rows+1, days+1)))   \n",
+        "    for P in range(0,rows+1):\n",
+        "        for L in range(0, days+1):\n",
+        "            day = L*1440\n",
+        "            if (table_I1['I_ISC'][P] <= day) and (table_I1['O_Etiolo_discharge'][P] > (day+1440)):\n",
+        "                df_I1[L][P] = 1\n",
+        "            else:\n",
+        "                df_I1[L][P] = 0\n",
+        "\n",
+        "    df_I1.drop(columns=df_I1.columns[:45], axis=1, inplace=True)\n",
+        "    df_I1.drop(columns=df_I1.columns[-45:], axis=1, inplace=True)\n",
+        "    I1_day = df_I1.sum(axis=0)\n",
+        "    I1_media = df_I1.sum(axis=0).mean()\n",
+        "    \n",
+        "    ##Calculating I1b\n",
+        "    if I1_media/capacity >= 0.95 or I1_media/capacity <= 0.75:\n",
+        "        I1b=1\n",
+        "    else:\n",
+        "        I1b=0\n",
+        "\n",
+        "    #df_ind['Scenario'][indicator_line] = f\"P1:{capacity} - P2:{mean_etio_eval} - SEED:{seed_i}\"   \n",
+        "    df_ind['I1'][indicator_line] = I1_media/capacity\n",
+        "    df_ind['I1b'][indicator_line] = I1b\n",
+        "    df_ind['I2'][indicator_line] = I2\n",
+        "    df_ind['I3'][indicator_line] = I3\n",
+        "    df_ind['I4'][indicator_line] = I4\n",
+        "\n",
+        "    return log, df_ind, I1_day, table_I2"
+      ],
+      "metadata": {
+        "id": "BKvbrgPnfNG9"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "### 2.3 Main Simulation Function"
+      ],
+      "metadata": {
+        "id": "U9GkRhj0l99M"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "%%time\n",
+        "def simulator(capacity, mean_etio_eval, days=450):\n",
+        "  global log, inter_arrival_time, Bed, indicator_line, df_ind, mean_ind\n",
+        "  inter_arrival_time = 579.92\n",
+        "  until=1440*days\n",
+        "  seed = [11,10]#[11,10,9] #[10, 2, 13, 14, 5, 28, 6, 11, 27, 21, 20, 30, 15, 18, 1]\n",
+        "  df_ind = pd.DataFrame(np.zeros(shape=(len(seed),5)),columns=['I1','I2','I1b','I3','I4'])\n",
+        "  indicator_line=0\n",
+        "  for k in range(0, len(seed)):\n",
+        "    random.seed(seed[k])\n",
+        "    env = simpy.Environment()\n",
+        "    Bed = simpy.Resource(env, capacity=capacity)\n",
+        "    env.process(OnsetOfSymptoms(env, mean_etio_eval))\n",
+        "    env.run(until=until)\n",
+        "    log = log.apply(pd.to_numeric)\n",
+        "    log.drop(axis=1, columns=['id'], inplace=True)\n",
+        "    log.reset_index(drop=True, inplace=True)\n",
+        "    indicators(log, df_ind, capacity, mean_etio_eval)\n",
+        "    indicator_line = indicator_line + 1\n",
+        "    del log\n",
+        "  mean_ind = df_ind.mean(axis=0)\n",
+        "  mean_ind = mean_ind.drop(['I1b'])\n",
+        "  mean_ind['I4']= - mean_ind['I4']\n",
+        "  #if mean_ind['I1'] < 0.75 or mean_ind['I1'] > 1:\n",
+        "  #  mean_ind['I1b'] = 0\n",
+        "  #else:\n",
+        "  #  mean_ind['I1b'] = 100000\n",
+        "  return df_ind, mean_ind"
+      ],
+      "metadata": {
+        "id": "9tnimh7VfBNp",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "37a80b0f-6b74-4d62-e34b-0475fca650e9"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "CPU times: user 4 µs, sys: 0 ns, total: 4 µs\n",
+            "Wall time: 8.82 µs\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "### 2.4 Iterator over main function"
+      ],
+      "metadata": {
+        "id": "Rm6MEJkdhMkE"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def full_simulation(capacity_list, mean_etio_eval_list, days):\n",
+        "  series = pd.DataFrame({'capacity-mean_etio_eval': ['I1', 'I2', 'I1b', 'I3', 'I4']}).set_index('capacity-mean_etio_eval')\n",
+        "  i=0\n",
+        "  for capacity in capacity_list:\n",
+        "    for mean_etio_eval in mean_etio_eval_list:\n",
+        "      if i==0:\n",
+        "        simulator(capacity, mean_etio_eval, days)\n",
+        "        series = mean_ind.to_frame(f\"{capacity}-{mean_etio_eval}\")\n",
+        "        i+=1\n",
+        "      else:\n",
+        "        simulator(capacity, mean_etio_eval, days)\n",
+        "        result = mean_ind.to_frame(f\"{capacity}-{mean_etio_eval}\")\n",
+        "        series = series.merge(right=result, left_index=True, right_index=True, how='inner')\n",
+        "        i+=1\n",
+        "  return series"
+      ],
+      "metadata": {
+        "id": "1hY4YqzuhMFq"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "## 3. MCDM - PROMETHEE"
+      ],
+      "metadata": {
+        "id": "sp1b0SSIkkdi"
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "### 3.1 Parcial visualization for testing"
+      ],
+      "metadata": {
+        "id": "gMPojjjh69gG"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def imprime_matriz(matriz, n, nn):\n",
+        "    print('           ', end='')\n",
+        "    for i in range(n_alt):\n",
+        "        print(f'({lista_alt[i]:^5})', end='')\n",
+        "    print()\n",
+        "    for j in range(n):\n",
+        "        print(f'{lista_crit[j]:^10}', '', end='')\n",
+        "        for i in range(nn):\n",
+        "            print(f'[{matriz[j][i]:^5}]', end='')\n",
+        "        print()\n",
+        "\n",
+        "\n",
+        "def imprime_matriz_critt(matriz, n, nn, nnn):\n",
+        "    for j in range(n):\n",
+        "        print(f'Matriz referente ao critério ({lista_crit[j]})')\n",
+        "        for i in range(nn):\n",
+        "            for h in range(nnn):\n",
+        "                print(f'[{matriz[j][i][h]:^5}]', end='')\n",
+        "            print()\n",
+        "        print('')\n",
+        "\n",
+        "\n",
+        "def imprime_matriz_AxA(matriz, n, nn):\n",
+        "    print('      ', end='')\n",
+        "    for i in range(n_alt):\n",
+        "        print(f'({lista_alt[i]:^5})', end='')\n",
+        "    print()\n",
+        "    for j in range(n):\n",
+        "        print(f'{lista_alt[j]:^5}', '', end='')\n",
+        "        for i in range(nn):\n",
+        "            print(f'[{matriz[j][i]:^5}]', end='')\n",
+        "        print()"
+      ],
+      "metadata": {
+        "id": "0xL6Svea7A86"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "### 3.2 Initial matrix"
+      ],
+      "metadata": {
+        "id": "XxxzjQaF7CCo"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def matrizes_criterios(n_crit,n_alt,matriz_M):\n",
+        "    matriz_comparacao = []\n",
+        "    for j in range(0, n_crit):\n",
+        "        matriz_comp_crit = []\n",
+        "        for i in range(0, n_alt):\n",
+        "            comp_lin = []\n",
+        "            for h in range(0, n_alt):\n",
+        "                if max_min[j] == 'max':\n",
+        "                    valores_comp = round(((matriz_M[j][i]) - (matriz_M[j][h])), 2)\n",
+        "                elif max_min[j] == 'min':\n",
+        "                    valores_comp = round(((matriz_M[j][h]) - (matriz_M[j][i])), 2)\n",
+        "                comp_lin.append(valores_comp)\n",
+        "            matriz_comp_crit.append(comp_lin)\n",
+        "        matriz_comparacao.append(matriz_comp_crit)  \n",
+        "    return matriz_comparacao"
+      ],
+      "metadata": {
+        "id": "nGLLPvvg7Ipb"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "### 3.3 Statistiscal curve transformation"
+      ],
+      "metadata": {
+        "id": "hdxej4uk7MM8"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def apl_curva(matriz_func_crit, matriz_comparacao, n_crit, n_alt):\n",
+        "  funcao_avl = matriz_func_crit\n",
+        "  matriz_funcao = []\n",
+        "  grau = 1\n",
+        "  for j in range(0, n_crit):\n",
+        "    matriz_func_crit = []    \n",
+        "    for i in range(0, n_alt):\n",
+        "        func_lin = []\n",
+        "        for h in range(0, n_alt):\n",
+        "            # Função USUAL\n",
+        "            if funcao_avl[j] == 1:\n",
+        "                x = (matriz_comparacao[j][i][h])\n",
+        "                if x <= 0:\n",
+        "                    grau = 0\n",
+        "                else:\n",
+        "                    grau = 1\n",
+        "\n",
+        "                if grau < 0:\n",
+        "                    grau = 0\n",
+        "\n",
+        "            # Função U-SHAPE\n",
+        "            if funcao_avl[j] == 2:\n",
+        "                x = (matriz_comparacao[j][i][h])\n",
+        "                if x <= q[j]:\n",
+        "                    grau = 0\n",
+        "                else:\n",
+        "                    grau = 1\n",
+        "\n",
+        "                if grau < 0:\n",
+        "                    grau = 0\n",
+        "\n",
+        "            # Função V-SHAPE\n",
+        "            if funcao_avl[j] == 3:\n",
+        "                x = (matriz_comparacao[j][i][h])\n",
+        "                if x <= p[j]:\n",
+        "                    grau = round((x/p[j]), 3)\n",
+        "                else:\n",
+        "                    grau = 1\n",
+        "\n",
+        "                if grau < 0:\n",
+        "                    grau = 0\n",
+        "\n",
+        "            # Função LEVEL\n",
+        "            if funcao_avl[j] == 4:\n",
+        "                x = (matriz_comparacao[j][i][h])\n",
+        "                if x <= q[j]:\n",
+        "                    grau = 0\n",
+        "                elif x > q[j] and x <= p[j]:\n",
+        "                    grau = 0.5\n",
+        "                else:\n",
+        "                    grau = 1\n",
+        "\n",
+        "                if grau < 0:\n",
+        "                    grau = 0\n",
+        "\n",
+        "            # Função V-SHAPE-I\n",
+        "            if funcao_avl[j] == 5:\n",
+        "                x = (matriz_comparacao[j][i][h])\n",
+        "                if x <= q[j]:\n",
+        "                    grau = 0\n",
+        "                elif x > q[j] and x <= p[j]:\n",
+        "                    grau = round(((x-q[j])/(p[j]-q[j])), 3)\n",
+        "                else:\n",
+        "                    grau = 1\n",
+        "\n",
+        "                if grau < 0:\n",
+        "                    grau = 0\n",
+        "\n",
+        "            # Função GAUSSIAN\n",
+        "            import math\n",
+        "            if funcao_avl[j] == 6:\n",
+        "                x = (matriz_comparacao[j][i][h])\n",
+        "                if x <= 0:\n",
+        "                    grau = 0\n",
+        "                else:\n",
+        "                    grau = round((1 - (math.e ** ((-((x)**2))/(2*(s[j] ** 2))))), 3)\n",
+        "                if grau < 0:\n",
+        "                    grau = 0\n",
+        "            # Fim das funções, abaixo segue a criação da matriz com os graus.\n",
+        "            func_lin.append(grau)\n",
+        "        matriz_func_crit.append(func_lin)\n",
+        "    matriz_funcao.append(matriz_func_crit)\n",
+        "  return matriz_funcao"
+      ],
+      "metadata": {
+        "id": "LQWcBx6i7QBF"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "### 3.4 Ponderation"
+      ],
+      "metadata": {
+        "id": "n9_EuIJO7Wo8"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def ponderar(n_crit,n_alt, matriz_funcao, lista_peso):\n",
+        "  matriz_peso = []\n",
+        "  for j in range(0, n_crit):\n",
+        "      matriz_peso_crit = []\n",
+        "      for i in range(0, n_alt):\n",
+        "          linha_peso = []\n",
+        "          for h in range(0, n_alt):\n",
+        "              valor_alt = round(float((matriz_funcao[j][i][h]) * lista_peso[j]), 3)\n",
+        "              # Fim da ponderagem, abaixo segue a criação da matriz\n",
+        "              # com os valores multiplicados pelos respectivos pesos.\n",
+        "              linha_peso.append(valor_alt)\n",
+        "          matriz_peso_crit.append(linha_peso)\n",
+        "      matriz_peso.append(matriz_peso_crit)\n",
+        "  return matriz_peso"
+      ],
+      "metadata": {
+        "id": "sdD2MahZ7YMu"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "### 3.5 Final matrix"
+      ],
+      "metadata": {
+        "id": "dKQWJG3f7aUm"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def matriz_fin(n_alt, n_crit, matriz_peso):\n",
+        "  matriz_final = []\n",
+        "\n",
+        "  for i in range(0, n_alt):\n",
+        "      linha_final = []\n",
+        "      for h in range(0, n_alt):\n",
+        "          Soma_valor = 0\n",
+        "          for j in range(0, n_crit):\n",
+        "              valor_final = matriz_peso[j][i][h]\n",
+        "              Soma_valor += valor_final\n",
+        "\n",
+        "          media_valor_final = round(float(Soma_valor/n_crit), 3)\n",
+        "\n",
+        "          linha_final.append(media_valor_final)\n",
+        "      matriz_final.append(linha_final)\n",
+        "  return matriz_final"
+      ],
+      "metadata": {
+        "id": "uU69Ny8-7crS"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "### 3.6 Final results"
+      ],
+      "metadata": {
+        "id": "I-Hx7DRE7ej1"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def Promethee_result(n_alt, matriz_final, lista_alt):\n",
+        "  lista_fluxo_positivo = []\n",
+        "  for i in range(0, n_alt):\n",
+        "      fluxo_posit = 0\n",
+        "      for h in range(0, n_alt):\n",
+        "          fluxo_posit += matriz_final[i][h]\n",
+        "      lista_fluxo_positivo.append(round(fluxo_posit, 3))\n",
+        "\n",
+        "  lista_fluxo_negativo = []\n",
+        "  for i in range(0, n_alt):\n",
+        "      fluxo_neg = 0\n",
+        "      for h in range(0, n_alt):\n",
+        "          fluxo_neg += matriz_final[h][i]\n",
+        "      lista_fluxo_negativo.append(round(fluxo_neg, 3))\n",
+        "\n",
+        "  lista_fluxo_liquido = []\n",
+        "  for i in range(0, n_alt):\n",
+        "      fluxo_liq = (lista_fluxo_positivo[i]) - (lista_fluxo_negativo[i])\n",
+        "      lista_fluxo_liquido.append(round(fluxo_liq, 3))\n",
+        "  Lista_ordenada = (sorted(lista_fluxo_liquido, reverse=True))\n",
+        "\n",
+        "  df_ordenado = pd.DataFrame({'Valor': []})\n",
+        "  for i in range(0, n_alt):\n",
+        "      print(lista_alt[lista_fluxo_liquido.index(Lista_ordenada[i])], '=', Lista_ordenada[i])\n",
+        "      df_ordenado = df_ordenado.append(pd.DataFrame({'Valor':Lista_ordenada[i]}, index=[lista_alt[lista_fluxo_liquido.index(Lista_ordenada[i])]]))\n",
+        "\n",
+        "  return df_ordenado"
+      ],
+      "metadata": {
+        "id": "W29BJofn7hHv"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "### 3.7 Promethee Main Function"
+      ],
+      "metadata": {
+        "id": "3UjvMsDU7rvH"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def promethee_exec(series,\n",
+        "                   max_min,\n",
+        "                   matriz_func_crit,\n",
+        "                   p,\n",
+        "                   q,\n",
+        "                   s,\n",
+        "                   lista_peso):\n",
+        "  \n",
+        "  series = series.iloc[1: , :]\n",
+        "  lista_alt= np.array(list(series.columns))         # ['a1', 'a2'])   #nomes\n",
+        "  lista_crit= np.array(list(series.index))          # ['c1', 'c2'])  #nomes\n",
+        "  n_alt = len(lista_alt)                            # tamanho da lista\n",
+        "  n_crit = len(lista_crit)                          # tamanho da lista\n",
+        "  matriz_M = np.array(series.to_numpy())            # ([[1,4],[2,3]]) respostas do MCDM\n",
+        "  #imprime_matriz(matriz_M, n_crit, n_alt)\n",
+        "  matriz_comparacao = matrizes_criterios(n_crit,n_alt,matriz_M)\n",
+        "  #imprime_matriz_critt(matriz_comparacao, n_crit, n_alt, n_alt)\n",
+        "  matriz_comparacao = matrizes_criterios(n_crit,n_alt,matriz_M)\n",
+        "  #imprime_matriz_critt(matriz_comparacao, n_crit, n_alt, n_alt)\n",
+        "  matriz_funcao = apl_curva(matriz_func_crit, matriz_comparacao, n_crit, n_alt)\n",
+        "  #imprime_matriz_critt(matriz_funcao, n_crit, n_alt, n_alt)\n",
+        "  matriz_peso = ponderar(n_crit,n_alt, matriz_funcao, lista_peso)\n",
+        "  #imprime_matriz_critt(matriz_peso, n_crit, n_alt, n_alt)\n",
+        "  matriz_final = matriz_fin(n_alt, n_crit, matriz_peso)\n",
+        "  #imprime_matriz_AxA(matriz_final, n_alt, n_alt)\n",
+        "  df_ordenado = Promethee_result(n_alt, matriz_final, lista_alt)\n",
+        "  return df_ordenado"
+      ],
+      "metadata": {
+        "id": "ePYuEB4H7t_9"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "## 4. SIMPLE SIMULATION EXECUTION"
+      ],
+      "metadata": {
+        "id": "hK5ZDwkL0gvU"
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "### 4.1 Priorization Function "
+      ],
+      "metadata": {
+        "id": "_bFn14t50oHo"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "def geracao(capacity_list, mean_etio_eval_list, days, max_min, matriz_func_crit, p, q, s, lista_peso):\n",
+        "  series = full_simulation(capacity_list, mean_etio_eval_list, days)\n",
+        "  result_geracao = promethee_exec(series, max_min , matriz_func_crit, p, q, s, lista_peso)\n",
+        "  return result_geracao"
+      ],
+      "metadata": {
+        "id": "_R80XZsB0gBb"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "### 4.2 Test code"
+      ],
+      "metadata": {
+        "id": "z1dojXFq0tBb"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "#INPUTS SIMULACAO\n",
+        "capacity_list = [30,25]\n",
+        "mean_etio_eval_list = [14062,7200]\n",
+        "days = 200\n",
+        "#INPUTS MCDM\n",
+        "max_min = np.array(['max', 'min', 'min', 'max'])  # objetivo dos criterios\n",
+        "matriz_func_crit = [3, 2, 1, 1]                   # tipo de curva\n",
+        "p = np.array([1, 1, 1, 1])                        # parametro p da curva, quando existir\n",
+        "q = np.array([1, 1, 1, 1])                        # parametro q da curva, quando existir\n",
+        "s = np.array(['', '', '', ''])                    # parametro s da curva, quando existir\n",
+        "lista_peso = [0.3, 0.7,0.3,0.3]                   # deve ter soma = 1"
+      ],
+      "metadata": {
+        "id": "uInLZ9SZ0m4g"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "result_geracao = geracao(capacity_list, mean_etio_eval_list, days, max_min, matriz_func_crit, p, q, s, lista_peso)\n",
+        "result_geracao"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "qXeP_G2t0yg5",
+        "outputId": "80aa829d-a5f1-4823-bcd5-4425ed8577cd"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "30-7200 = 0.099\n",
+            "25-7200 = 0.033\n",
+            "30-14062 = -0.033\n",
+            "25-14062 = -0.099\n"
+          ]
+        },
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "          Valor\n",
+              "30-7200   0.099\n",
+              "25-7200   0.033\n",
+              "30-14062 -0.033\n",
+              "25-14062 -0.099"
+            ],
+            "text/html": [
+              "\n",
+              "  <div id=\"df-7f7edc70-8f75-46a2-9171-df328a9c49e6\">\n",
+              "    <div class=\"colab-df-container\">\n",
+              "      <div>\n",
+              "<style scoped>\n",
+              "    .dataframe tbody tr th:only-of-type {\n",
+              "        vertical-align: middle;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe tbody tr th {\n",
+              "        vertical-align: top;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe thead th {\n",
+              "        text-align: right;\n",
+              "    }\n",
+              "</style>\n",
+              "<table border=\"1\" class=\"dataframe\">\n",
+              "  <thead>\n",
+              "    <tr style=\"text-align: right;\">\n",
+              "      <th></th>\n",
+              "      <th>Valor</th>\n",
+              "    </tr>\n",
+              "  </thead>\n",
+              "  <tbody>\n",
+              "    <tr>\n",
+              "      <th>30-7200</th>\n",
+              "      <td>0.099</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>25-7200</th>\n",
+              "      <td>0.033</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>30-14062</th>\n",
+              "      <td>-0.033</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>25-14062</th>\n",
+              "      <td>-0.099</td>\n",
+              "    </tr>\n",
+              "  </tbody>\n",
+              "</table>\n",
+              "</div>\n",
+              "      <button class=\"colab-df-convert\" onclick=\"convertToInteractive('df-7f7edc70-8f75-46a2-9171-df328a9c49e6')\"\n",
+              "              title=\"Convert this dataframe to an interactive table.\"\n",
+              "              style=\"display:none;\">\n",
+              "        \n",
+              "  <svg xmlns=\"http://www.w3.org/2000/svg\" height=\"24px\"viewBox=\"0 0 24 24\"\n",
+              "       width=\"24px\">\n",
+              "    <path d=\"M0 0h24v24H0V0z\" fill=\"none\"/>\n",
+              "    <path d=\"M18.56 5.44l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94zm-11 1L8.5 8.5l.94-2.06 2.06-.94-2.06-.94L8.5 2.5l-.94 2.06-2.06.94zm10 10l.94 2.06.94-2.06 2.06-.94-2.06-.94-.94-2.06-.94 2.06-2.06.94z\"/><path d=\"M17.41 7.96l-1.37-1.37c-.4-.4-.92-.59-1.43-.59-.52 0-1.04.2-1.43.59L10.3 9.45l-7.72 7.72c-.78.78-.78 2.05 0 2.83L4 21.41c.39.39.9.59 1.41.59.51 0 1.02-.2 1.41-.59l7.78-7.78 2.81-2.81c.8-.78.8-2.07 0-2.86zM5.41 20L4 18.59l7.72-7.72 1.47 1.35L5.41 20z\"/>\n",
+              "  </svg>\n",
+              "      </button>\n",
+              "      \n",
+              "  <style>\n",
+              "    .colab-df-container {\n",
+              "      display:flex;\n",
+              "      flex-wrap:wrap;\n",
+              "      gap: 12px;\n",
+              "    }\n",
+              "\n",
+              "    .colab-df-convert {\n",
+              "      background-color: #E8F0FE;\n",
+              "      border: none;\n",
+              "      border-radius: 50%;\n",
+              "      cursor: pointer;\n",
+              "      display: none;\n",
+              "      fill: #1967D2;\n",
+              "      height: 32px;\n",
+              "      padding: 0 0 0 0;\n",
+              "      width: 32px;\n",
+              "    }\n",
+              "\n",
+              "    .colab-df-convert:hover {\n",
+              "      background-color: #E2EBFA;\n",
+              "      box-shadow: 0px 1px 2px rgba(60, 64, 67, 0.3), 0px 1px 3px 1px rgba(60, 64, 67, 0.15);\n",
+              "      fill: #174EA6;\n",
+              "    }\n",
+              "\n",
+              "    [theme=dark] .colab-df-convert {\n",
+              "      background-color: #3B4455;\n",
+              "      fill: #D2E3FC;\n",
+              "    }\n",
+              "\n",
+              "    [theme=dark] .colab-df-convert:hover {\n",
+              "      background-color: #434B5C;\n",
+              "      box-shadow: 0px 1px 3px 1px rgba(0, 0, 0, 0.15);\n",
+              "      filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.3));\n",
+              "      fill: #FFFFFF;\n",
+              "    }\n",
+              "  </style>\n",
+              "\n",
+              "      <script>\n",
+              "        const buttonEl =\n",
+              "          document.querySelector('#df-7f7edc70-8f75-46a2-9171-df328a9c49e6 button.colab-df-convert');\n",
+              "        buttonEl.style.display =\n",
+              "          google.colab.kernel.accessAllowed ? 'block' : 'none';\n",
+              "\n",
+              "        async function convertToInteractive(key) {\n",
+              "          const element = document.querySelector('#df-7f7edc70-8f75-46a2-9171-df328a9c49e6');\n",
+              "          const dataTable =\n",
+              "            await google.colab.kernel.invokeFunction('convertToInteractive',\n",
+              "                                                     [key], {});\n",
+              "          if (!dataTable) return;\n",
+              "\n",
+              "          const docLinkHtml = 'Like what you see? Visit the ' +\n",
+              "            '<a target=\"_blank\" href=https://colab.research.google.com/notebooks/data_table.ipynb>data table notebook</a>'\n",
+              "            + ' to learn more about interactive tables.';\n",
+              "          element.innerHTML = '';\n",
+              "          dataTable['output_type'] = 'display_data';\n",
+              "          await google.colab.output.renderOutput(dataTable, element);\n",
+              "          const docLink = document.createElement('div');\n",
+              "          docLink.innerHTML = docLinkHtml;\n",
+              "          element.appendChild(docLink);\n",
+              "        }\n",
+              "      </script>\n",
+              "    </div>\n",
+              "  </div>\n",
+              "  "
+            ]
+          },
+          "metadata": {},
+          "execution_count": 16
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "## 5. OPTIMIZATION - GA"
+      ],
+      "metadata": {
+        "id": "5vrvVZrJknbd"
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "#### 5.1 Optimization Libraries"
+      ],
+      "metadata": {
+        "id": "p3DW5sFjrYqF"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "!pip install pymoo\n",
+        "from pymoo.algorithms.soo.nonconvex.ga import GA\n",
+        "from pymoo.problems import get_problem\n",
+        "from pymoo.optimize import minimize\n",
+        "import pandas as pd\n",
+        "import numpy as np\n",
+        "from pymoo.core.problem import Problem"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "YHb_1ie4_mV9",
+        "outputId": "7a3aa261-f23d-440a-a68f-e6fc25fd1559"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Looking in indexes: https://pypi.org/simple, https://us-python.pkg.dev/colab-wheels/public/simple/\n",
+            "Collecting pymoo\n",
+            "  Downloading pymoo-0.6.0-cp37-cp37m-manylinux_2_24_x86_64.whl (1.9 MB)\n",
+            "\u001b[K     |████████████████████████████████| 1.9 MB 4.6 MB/s \n",
+            "\u001b[?25hRequirement already satisfied: numpy>=1.15 in /usr/local/lib/python3.7/dist-packages (from pymoo) (1.21.6)\n",
+            "Collecting Deprecated\n",
+            "  Downloading Deprecated-1.2.13-py2.py3-none-any.whl (9.6 kB)\n",
+            "Requirement already satisfied: scipy>=1.1 in /usr/local/lib/python3.7/dist-packages (from pymoo) (1.7.3)\n",
+            "Requirement already satisfied: matplotlib>=3 in /usr/local/lib/python3.7/dist-packages (from pymoo) (3.2.2)\n",
+            "Requirement already satisfied: autograd>=1.4 in /usr/local/lib/python3.7/dist-packages (from pymoo) (1.4)\n",
+            "Requirement already satisfied: dill in /usr/local/lib/python3.7/dist-packages (from pymoo) (0.3.5.1)\n",
+            "Collecting alive-progress\n",
+            "  Downloading alive_progress-2.4.1-py3-none-any.whl (80 kB)\n",
+            "\u001b[K     |████████████████████████████████| 80 kB 10.1 MB/s \n",
+            "\u001b[?25hCollecting cma==3.2.2\n",
+            "  Downloading cma-3.2.2-py2.py3-none-any.whl (249 kB)\n",
+            "\u001b[K     |████████████████████████████████| 249 kB 54.6 MB/s \n",
+            "\u001b[?25hRequirement already satisfied: future>=0.15.2 in /usr/local/lib/python3.7/dist-packages (from autograd>=1.4->pymoo) (0.16.0)\n",
+            "Requirement already satisfied: python-dateutil>=2.1 in /usr/local/lib/python3.7/dist-packages (from matplotlib>=3->pymoo) (2.8.2)\n",
+            "Requirement already satisfied: cycler>=0.10 in /usr/local/lib/python3.7/dist-packages (from matplotlib>=3->pymoo) (0.11.0)\n",
+            "Requirement already satisfied: kiwisolver>=1.0.1 in /usr/local/lib/python3.7/dist-packages (from matplotlib>=3->pymoo) (1.4.4)\n",
+            "Requirement already satisfied: pyparsing!=2.0.4,!=2.1.2,!=2.1.6,>=2.0.1 in /usr/local/lib/python3.7/dist-packages (from matplotlib>=3->pymoo) (3.0.9)\n",
+            "Requirement already satisfied: typing-extensions in /usr/local/lib/python3.7/dist-packages (from kiwisolver>=1.0.1->matplotlib>=3->pymoo) (4.1.1)\n",
+            "Requirement already satisfied: six>=1.5 in /usr/local/lib/python3.7/dist-packages (from python-dateutil>=2.1->matplotlib>=3->pymoo) (1.15.0)\n",
+            "Collecting grapheme==0.6.0\n",
+            "  Downloading grapheme-0.6.0.tar.gz (207 kB)\n",
+            "\u001b[K     |████████████████████████████████| 207 kB 57.5 MB/s \n",
+            "\u001b[?25hCollecting about-time==3.1.1\n",
+            "  Downloading about_time-3.1.1-py3-none-any.whl (9.1 kB)\n",
+            "Requirement already satisfied: wrapt<2,>=1.10 in /usr/local/lib/python3.7/dist-packages (from Deprecated->pymoo) (1.14.1)\n",
+            "Building wheels for collected packages: grapheme\n",
+            "  Building wheel for grapheme (setup.py) ... \u001b[?25l\u001b[?25hdone\n",
+            "  Created wheel for grapheme: filename=grapheme-0.6.0-py3-none-any.whl size=210096 sha256=287e539adf11f0caf00c10bf3a929cbb1d50c0b39a653f7cbb7cdc302e3964b3\n",
+            "  Stored in directory: /root/.cache/pip/wheels/71/fc/c8/142ef03b79c02b618fe80b9f2d01c25bd55f60b0c58eab3f0e\n",
+            "Successfully built grapheme\n",
+            "Installing collected packages: grapheme, about-time, Deprecated, cma, alive-progress, pymoo\n",
+            "Successfully installed Deprecated-1.2.13 about-time-3.1.1 alive-progress-2.4.1 cma-3.2.2 grapheme-0.6.0 pymoo-0.6.0\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "#### 5.2 Simulation interator for optimization"
+      ],
+      "metadata": {
+        "id": "hD45j8v9rbtz"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "b"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "SUC_fZ9DXkI-",
+        "outputId": "aa37b291-a60b-4e30-f2d1-a65979d872f3"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "I1        2.352477\n",
+              "I2    36004.029679\n",
+              "I3    26332.734068\n",
+              "I4        0.344125\n",
+              "dtype: float64"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 29
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "b['I4']= -b['I4']\n",
+        "b"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "orZU1qeKZUqY",
+        "outputId": "cf977e9d-5c54-4179-cc00-c1f3ec8980fd"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "I1        2.352477\n",
+              "I2    36004.029679\n",
+              "I3    26332.734068\n",
+              "I4       -0.344125\n",
+              "dtype: float64"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 31
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "a,b = simulator(12,12,120)"
+      ],
+      "metadata": {
+        "id": "648XIItOZOrk"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "\n",
+        "df=pd.DataFrame([[1,2],[200,300]],columns=['capacity','mean_etio_eval'])\n",
+        "def simulate_list(list_inputs):\n",
+        "  sim_list=[]\n",
+        "  for i,row in list_inputs.iterrows():\n",
+        "    sim_list.append(simulator(row['capacity'],row['mean_etio_eval'],120)[1].to_numpy())\n",
+        "    #print(sim_list)\n",
+        "  return np.array(sim_list).reshape(-1,4)"
+      ],
+      "metadata": {
+        "id": "p59Q2b5wu3fd"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "#### 5.2 Main GA Algorithm\n"
+      ],
+      "metadata": {
+        "id": "6Bo82GhzExQc"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "class MedicalLine(Problem):\n",
+        "\n",
+        "    def __init__(self,):\n",
+        "        xl=np.zeros(2)\n",
+        "        xu=np.zeros(2)\n",
+        "        xl[0]=20\n",
+        "        xu[0]=30\n",
+        "        xl[1]=7200\n",
+        "        xu[1]=14062\n",
+        "        super().__init__(n_var=2, n_obj=4, n_ieq_constr=1, xl=xl, xu=xu)\n",
+        "\n",
+        "    def _evaluate(self, list_inputs, out, *args, **kwargs):\n",
+        "        #print(list_inputs)\n",
+        "        df=pd.DataFrame(list_inputs, columns=['capacity','mean_etio_eval'])\n",
+        "        #print('shape',df.shape)\n",
+        "        out[\"F\"] = simulate_list(df)\n",
+        "        G1 = out[\"F\"][:,0] - 0.95\n",
+        "        G2 = - out[\"F\"][:,0] + 0.65\n",
+        "        out[\"G\"] = [G1,G2]\n",
+        "\n",
+        "        #print(out)"
+      ],
+      "metadata": {
+        "id": "OvsTZ7ldk5XC"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "#### 5.3 NSGA3 Execution\n"
+      ],
+      "metadata": {
+        "id": "WgbL06hdE_RF"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from pymoo.algorithms.moo.nsga3 import NSGA3\n",
+        "from pymoo.optimize import minimize\n",
+        "from pymoo.problems import get_problem\n",
+        "from pymoo.util.ref_dirs import get_reference_directions\n",
+        "from pymoo.visualization.scatter import Scatter\n",
+        "from pymoo.constraints.as_obj import ConstraintsAsObjective\n",
+        "from pymoo.constraints.as_penalty import ConstraintsAsPenalty\n",
+        "from pymoo.problems.single import G1\n",
+        "\n",
+        "# create the reference directions to be used for the optimization\n",
+        "ref_dirs = get_reference_directions(\"das-dennis\", 4, n_partitions=2)\n",
+        "\n",
+        "# create the algorithm object\n",
+        "algorithm = NSGA3(pop_size=15,\n",
+        "                  ref_dirs=ref_dirs)\n",
+        "\n",
+        "# execute the optimization\n",
+        "res = minimize(MedicalLine(),\n",
+        "               algorithm,\n",
+        "               seed=1,\n",
+        "               verbose=True,\n",
+        "               save_history=True,\n",
+        "               termination=('n_gen', 5))"
+      ],
+      "metadata": {
+        "id": "TMQWL0gx_TX_",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "1830ebd8-b219-4634-b5af-478a687cdef1"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "==========================================================================================\n",
+            "n_gen  |  n_eval  | n_nds  |     cv_min    |     cv_avg    |      eps      |   indicator  \n",
+            "==========================================================================================\n",
+            "     1 |       15 |      3 |  0.000000E+00 |  0.0110881567 |             - |             -\n",
+            "     2 |       30 |      1 |  0.000000E+00 |  0.000000E+00 |  2.156157E+03 |         ideal\n",
+            "     3 |       45 |      3 |  0.000000E+00 |  0.000000E+00 |  1.0000000000 |         ideal\n",
+            "     4 |       60 |      4 |  0.000000E+00 |  0.000000E+00 |  0.1711713776 |             f\n",
+            "     5 |       75 |      4 |  0.000000E+00 |  0.000000E+00 |  0.000000E+00 |             f\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "res.F"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "I0WNPRULJP43",
+        "outputId": "4475a0c5-5571-4c5c-ad88-8527405636ce"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "array([[ 6.88655366e-01,  1.37731988e+04,  2.31431695e+03,\n",
+              "        -4.78918651e-01],\n",
+              "       [ 6.51395641e-01,  1.44062498e+04,  3.07125852e+03,\n",
+              "        -4.83523234e-01],\n",
+              "       [ 6.75078527e-01,  1.34403195e+04,  2.19580080e+03,\n",
+              "        -4.68272083e-01],\n",
+              "       [ 6.65790997e-01,  1.38639910e+04,  2.43039382e+03,\n",
+              "        -4.75006059e-01]])"
+            ]
+          },
+          "metadata": {},
+          "execution_count": 46
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "#### 5.4 PROMETHEE Execution\n"
+      ],
+      "metadata": {
+        "id": "EFuerR-kFIe6"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import matplotlib.pyplot as plt"
+      ],
+      "metadata": {
+        "id": "IJzA9ugZT2mn"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "n_evals = []             # corresponding number of function evaluations\\\n",
+        "hist_F = []              # the objective space values in each generation\n",
+        "hist_cv = []             # constraint violation in each generation\n",
+        "hist_cv_avg = []         # average constraint violation in the whole population\n",
+        "\n",
+        "for algo in res.history:\n",
+        "\n",
+        "    # store the number of function evaluations\n",
+        "    n_evals.append(algo.evaluator.n_eval)\n",
+        "\n",
+        "    # retrieve the optimum from the algorithm\n",
+        "    opt = algo.opt\n",
+        "\n",
+        "    # store the least contraint violation and the average in each population\n",
+        "    hist_cv.append(opt.get(\"CV\").min())\n",
+        "    hist_cv_avg.append(algo.pop.get(\"CV\").mean())\n",
+        "\n",
+        "    # filter out only the feasible and append and objective space values\n",
+        "    feas = np.where(opt.get(\"feasible\"))[0]\n",
+        "    hist_F.append(opt.get(\"F\")[feas])\n",
+        "\n",
+        "vals = hist_cv_avg\n",
+        "\n",
+        "#k = np.where(np.array(vals) <= 0.0)[0].min()\n",
+        "#print(f\"Whole population feasible in Generation {k} after {n_evals[k]} evaluations.\")\n",
+        "\n",
+        "plt.figure(figsize=(7, 5))\n",
+        "plt.plot(n_evals, vals,  color='black', lw=0.7, label=\"Avg. CV of Pop\")\n",
+        "plt.scatter(n_evals, vals,  facecolor=\"none\", edgecolor='black', marker=\"p\")\n",
+        "#plt.axvline(n_evals[k], color=\"red\", label=\"All Feasible\", linestyle=\"--\")\n",
+        "plt.title(\"Convergence\")\n",
+        "plt.xlabel(\"Function Evaluations\")\n",
+        "plt.legend()\n",
+        "plt.show()"
+      ],
+      "metadata": {
+        "id": "fR60XkwkGfTK",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 350
+        },
+        "outputId": "28597319-7e6d-4c2e-f6da-72b50c1ca4da"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "display_data",
+          "data": {
+            "text/plain": [
+              "<Figure size 504x360 with 1 Axes>"
+            ],
+            "image/png": "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mZlJnz592LBhQ9iliIh8jgJOTkhRUZEe3SUiTZICTk7IgAEDWLduHVVVVWGXIiLyGQo4OSFmxtChQ1mxYkXYpYiIfIYCTk5YQUGBJkIVkSZHAScn7Itf/CI7duxg//79YZciInKMAk6SYuzYsTz66KNhlyEicowCTpJi8uTJzJ49O+wyRESOUcBJUmRlZWFm7Nq1K+xSRESABAPOzHLNbIuZlZvZrTVsb2lmJcH21WbWI27bbUH7FjMbmegxJfVcffXVXHnllfTp04f169eHXU4klZWVccEFFzB69Gjee++9sMuJpFmzZvGFL3yB6dOnc/DgwbDLiZzKykp+/OMf06lTJx566CHcvdHeq86AM7MM4H5gFJAN5JtZdrVuNwAfuHsv4D7gZ8G+2UAe0AfIBR4ws4wEjykp5PHHH+fHP/4xlZWV3HbbbVx11VX86le/atRf3nRy5MgR7r33XkaPHs3tt99O//796d+/P0899VTYpUXGvn37uP7667n99tspLi7mzTffZNCgQbz66qthlxYZb731FkOGDGH16tXMmzeP3/zmN0ydOpUPP/ywcd7Q3Y/7AgYBi+PWbwNuq9ZnMTAoWM4EdgFWve/Rfokcs6bXgAEDXJqe8vJyb9u2ra9YscJvuOEGLy8v9/Lycj/nnHO8pKQk7PIi4S9/+Yufe+65vnXr1mNtS5Ys8datW/vbb78dXmER8u1vf9uvvfZa//jjj93d/ciRI37vvff62WefHXJl0XHxxRf7j370I6+qqnJ39/3793tBQYHn5eU1+JhAmdeSGZkJZGAXIH5OlArg0tr6uHulme0FsoL256rt2yVYruuYAJjZjcCNAGeffXYC5crJ1q1bN1q0aEGvXr246aabuOmmm2jRogUVFRU88MAD/Nd//VfYJaa8jz76iG3btjFt2rRjbfv376eyspKbbroJMwuxumh466232LNnD3l5ecfatm/fzv79+xkzZkyIlUXHzp07WbBgAS+88AIXXHAB99xzD506deKMM85olPdLJOBC5e4PAg8C5OTk6HpXE9SiRQuuueYa5s+fz80338zTTz/Nc889x9atW1m+fHnY5UWCu9OrVy/uuusu+vfvD8AvfvELevbsyUMPPRRyddGwY8cOsrOzeeSRR2jZsiUQm7l+2rRpXH/99SFXFw3z5s3j/vvvZ9GiRUDs0vu8efNY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\n"
+          },
+          "metadata": {
+            "needs_background": "light"
+          }
+        }
+      ]
+    }
+  ]
+}
